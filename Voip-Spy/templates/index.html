@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoIP-Spy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>VoIP-Spy</h1>
+
+    <div class="container">
+        <!-- Radar Section -->
+        <div class="radar-section">
+            <div class="radar">
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+            </div>
+        </div>
+
+        <!-- Capture Controls -->
+        <div class="capture-controls">
+            <label for="capturePath">Select Save Path/Name:</label>
+            <input type="text" id="capturePath" placeholder="Enter the path or filename">
+            
+            <button id="startCapture">Start Capturing</button>
+            <input type="file" id="pcapFileInput" accept=".pcap">
+            <button id="stopCapture">Stop Capturing</button>
+            <button id="listenAudio">Listen Audio</button>
+            <button id="GetData">GetData</button>
+        </div>
+
+        <!-- Audio Path Display -->
+        <div id="audioPathSection" style="display:none;">
+            <h3>Audio Saved at:</h3>
+            <p id="audioPath"></p>
+        </div>
+
+        
+
+        <!-- Speech to Text Section -->
+        <div class="speech-to-text">
+            <label for="wavFileInput">Select a WAV file:</label>
+            <input type="file" id="wavFileInput" accept=".wav">
+            <button id="speechToText">Speech to Text</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
+
+

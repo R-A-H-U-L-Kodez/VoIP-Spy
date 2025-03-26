@@ -1,0 +1,150 @@
+/* Body and Overall Layout */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #0d1117;
+    color: #c9d1d9;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Container for centering content */
+.container {
+    margin: 20px auto;
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Radar Section - Center the radar */
+.radar-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px; /* Adjust height if needed */
+    margin-bottom: 20px;
+}
+
+/* Table Section */
+.table-section {
+    margin-top: 20px;
+    width: 100%; /* Ensure the table takes full width */
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #161b22;
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+}
+
+/* Table Headers */
+th {
+    background-color: #21262d;
+    padding: 12px;
+    text-align: center;
+    font-size: 16px;
+    border: 1px solid #30363d;
+    font-weight: bold;
+}
+
+/* Table Data */
+td {
+    border: 1px solid #30363d;
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    border-radius: 5px;
+}
+
+/* Table Data Hover Effect */
+td:hover {
+    background-color: #333c46;
+}
+
+/* Buttons */
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin: 5px;
+    border-radius: 5px;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+/* Spinning Radar Circle */
+.radar {
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #007f5f, #003f2a);
+    position: relative;
+    overflow: hidden;
+    border: 2px solid #004d3d;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+/* Radar Circles */
+.radar .circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    animation: pulse 4s infinite;
+}
+
+.radar .circle:nth-child(1) { width: 250px; height: 250px; animation-duration: 6s; }
+.radar .circle:nth-child(2) { width: 200px; height: 200px; animation-duration: 5s; }
+.radar .circle:nth-child(3) { width: 150px; height: 150px; animation-duration: 4s; }
+.radar .circle:nth-child(4) { width: 100px; height: 100px; animation-duration: 3s; }
+.radar .circle:nth-child(5) { width: 50px; height: 50px; animation-duration: 2s; }
+
+/* Sweep Animation for Line */
+.radar::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150px; /* Half of radar size */
+    height: 2px;
+    background: linear-gradient(to right, rgba(0, 255, 0, 0.8), rgba(0, 255, 0, 0));
+    transform-origin: left;
+    opacity: 0;
+}
+
+/* Active Spinning Effect */
+.radar.active::after {
+    animation: sweep 3s linear infinite;
+    opacity: 1;
+}
+
+/* Sweep Animation */
+@keyframes sweep {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Pulse Effect for Circles */
+@keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.3; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+}
+

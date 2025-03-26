@@ -1,0 +1,158 @@
+import subprocess
+import os
+import json  # Import json for metadata handling
+from flask import Flask, render_template, jsonify, request, send_file, send_from_directory
+
+app = Flask(__name__)
+
+# Default directories
+DEFAULT_CAPTURE_DIR = "/home/sanjay/Downloads/voip-spy/"
+DEFAULT_FILE_NAME = "voip_capture.pcap"
+AUDIO_DIR = '/home/sanjay/Downloads/voip-spy/voip-spy/extracted_audio'
+DATA_DIR = '/home/sanjay/Downloads/voip-spy/voip-spy/data'
+
+# Store process reference
+tshark_process = None
+capture_path = os.path.join(DEFAULT_CAPTURE_DIR, DEFAULT_FILE_NAME)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/start_capture', methods=['POST'])
+def start_capture():
+    """ Start Tshark packet capture """
+    global capture_path, tshark_process
+
+    data = request.get_json()
+    user_capture_path = data.get("capture_path", "").strip()
+    capture_path = os.path.abspath(user_capture_path) if user_capture_path else os.path.join(DEFAULT_CAPTURE_DIR, DEFAULT_FILE_NAME)
+
+    # Stop any running instance before starting a new one
+    if tshark_process and tshark_process.poll() is None:
+        tshark_process.terminate()
+    
+    try:
+        tshark_process = subprocess.Popen(["tshark", "-i", "wlo1", "-w", capture_path])
+        return jsonify({"message": f"Capture started at {capture_path}"})
+    except Exception as e:
+        return jsonify({"message": f"Error: {e}"}), 500
+
+@app.route('/stop_capture', methods=['POST'])
+def stop_capture():
+    """ Stop Tshark capture """
+    global tshark_process
+    try:
+        if tshark_process and tshark_process.poll() is None:
+            tshark_process.terminate()
+            tshark_process.wait()
+        
+        if os.path.exists(capture_path):
+            return jsonify({"message": "Capture stopped", "file_url": "/download_pcap"})
+        return jsonify({"message": "No capture file found."}), 500
+    except Exception as e:
+        return jsonify({"message": f"Error: {e}"}), 500
+
+@app.route('/download_pcap')
+def download_pcap():
+    """ Serve the PCAP file for download """
+    if os.path.exists(capture_path):
+        return send_file(capture_path, as_attachment=True)
+    return jsonify({"message": "File not found."}), 404
+
+@app.route('/listen_audio', methods=['POST'])
+def listen_audio():
+    """ Process PCAP to extract and return audio """
+    try:
+        if 'file' not in request.files:
+            return jsonify({"message": "No file provided"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"message": "No file selected"}), 400
+
+        temp_pcap_path = "/tmp/uploaded_capture.pcap"
+        file.save(temp_pcap_path)
+
+        subprocess.Popen(["python3", "scripts/voip6.py", temp_pcap_path])
+
+        extracted_audio = os.listdir(AUDIO_DIR)
+        if extracted_audio:
+            latest_audio = extracted_audio[-1]  # Assuming latest file is needed
+            return jsonify({
+                "message": f"Audio extracted successfully.",
+                "audio_path": f"/audio/{latest_audio}"
+            })
+        return jsonify({"message": "No audio found."}), 404
+    except Exception as e:
+        return jsonify({"message": f"Error: {e}"}), 500
+
+@app.route('/audio/<filename>')
+def serve_audio(filename):
+    """ Serve extracted audio files """
+    if os.path.exists(os.path.join(AUDIO_DIR, filename)):
+        return send_from_directory(AUDIO_DIR, filename)
+    return "File not found", 404
+
+@app.route('/get_voip_data', methods=['POST'])
+def get_voip_data():
+    """ Process PCAP file to extract RTP data """
+    try:
+        if 'file' not in request.files:
+            return jsonify({"message": "No file provided"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"message": "No file selected"}), 400
+
+        temp_pcap_path = "/tmp/uploaded_capture.pcap"
+        file.save(temp_pcap_path)
+
+        # Call the extraction function, which no longer saves to a file but returns the data
+        subprocess.Popen(["python3", "scripts/extract_rtp.py", temp_pcap_path])
+
+        if not rtp_data_list:
+            return jsonify({"message": "No RTP streams found."}), 404
+
+        return jsonify({"message": "RTP data extracted", "voip_data": rtp_data_list})
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"message": f"Script error: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+        
+@app.route('/latest_metadata', methods=['GET'])
+def latest_metadata():
+    """
+    Find and return the most recent RTP metadata JSON data.
+    """
+    try:
+        # List all subdirectories in the data folder
+        subdirs = sorted([d for d in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, d))], reverse=True)
+        
+        if not subdirs:
+            return jsonify({"message": "No metadata available."}), 404
+        
+        # Pick the most recent folder
+        latest_folder = os.path.join(DATA_DIR, subdirs[0])
+        metadata_path = os.path.join(latest_folder, "metadata.json")
+
+        if not os.path.exists(metadata_path):
+            return jsonify({"message": "Metadata file not found."}), 404
+        
+        # Load the metadata JSON file
+        with open(metadata_path, "r") as file:
+            metadata = json.load(file)
+
+        return jsonify({"message": "Latest metadata retrieved", "voip_data": metadata})
+    
+    except Exception as e:
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+
+
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+

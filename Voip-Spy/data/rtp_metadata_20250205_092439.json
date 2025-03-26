@@ -1,0 +1,14 @@
+{
+    "rtp_data": [
+        {
+            "source_ip": "192.168.1.10",
+            "destination_ip": "192.168.1.20",
+            "source_port": 4000,
+            "destination_port": 5000,
+            "ssrc": 12345,
+            "payload_type": 8,
+            "packets": 200,
+            "duration": "30s"
+        }
+    ]
+}

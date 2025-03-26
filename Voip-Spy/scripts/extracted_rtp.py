@@ -1,0 +1,98 @@
+import os
+from collections import defaultdict
+from scapy.all import *
+from datetime import datetime
+import json
+import sys
+
+# Ensure ffmpeg is available
+os.environ["FFMPEG_BINARY"] = "ffmpeg"
+
+# Set base directory for storing metadata (optional, but used for timestamped directories)
+BASE_DIR = "/home/sanjay/Downloads/voip-spy/voip-spy/data"
+
+def extract_rtp_streams(pcap_file):
+    packets = rdpcap(pcap_file)
+
+    # RTP stream dictionary
+    rtp_streams = defaultdict(lambda: {
+        'source_ip': None,
+        'destination_ip': None,
+        'source_port': None,
+        'destination_port': None,
+        'ssrc': None,
+        'payload_type': None,
+        'packets': {},
+        'timestamps': []
+    })
+
+    # Define supported voice payload types
+    VOICE_PAYLOAD_TYPES = {0, 8}
+
+    # Process packets
+    for packet in packets:
+        try:
+            if UDP in packet:
+                rtp_data = bytes(packet[UDP].payload)
+                if len(rtp_data) >= 12:
+                    payload_type = rtp_data[1] & 0x7F
+                    sequence_number = int.from_bytes(rtp_data[2:4], byteorder='big')
+                    timestamp = int.from_bytes(rtp_data[4:8], byteorder='big')
+                    ssrc = int.from_bytes(rtp_data[8:12], byteorder='big')
+
+                    if payload_type not in VOICE_PAYLOAD_TYPES:
+                        continue
+
+                    payload = rtp_data[12:]
+                    stream_id = (packet[IP].src, packet[UDP].sport, packet[IP].dst, packet[UDP].dport, ssrc)
+
+                    if not rtp_streams[stream_id]['source_ip']:
+                        rtp_streams[stream_id]['source_ip'] = packet[IP].src
+                        rtp_streams[stream_id]['destination_ip'] = packet[IP].dst
+                        rtp_streams[stream_id]['source_port'] = packet[UDP].sport
+                        rtp_streams[stream_id]['destination_port'] = packet[UDP].dport
+                        rtp_streams[stream_id]['ssrc'] = ssrc
+                        rtp_streams[stream_id]['payload_type'] = payload_type
+
+                    rtp_streams[stream_id]['packets'][sequence_number] = payload
+                    rtp_streams[stream_id]['timestamps'].append(timestamp)
+        except Exception as e:
+            print(f"⚠️ Error processing packet: {e}")
+            continue
+
+    # Prepare RTP data without saving it to a file
+    rtp_data_list = []  # Ensure the list is always initialized
+    for stream_id, details in rtp_streams.items():
+        if details['packets']:
+            timestamps = sorted(details['timestamps'])
+            duration = (timestamps[-1] - timestamps[0]) / 8000.0 if timestamps else 0
+
+            if duration < 2.0:
+                continue
+
+            rtp_data_list.append({
+                "source_ip": details['source_ip'],
+                "destination_ip": details['destination_ip'],
+                "source_port": details['source_port'],
+                "destination_port": details['destination_port'],
+                "ssrc": details['ssrc'],
+                "payload_type": details['payload_type'],
+                "packets": len(details['packets']),
+                "duration": round(duration, 2)
+            })
+
+    # Print the data as JSON to stdout (instead of saving to file)
+    print(json.dumps(rtp_data_list, indent=4))
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python extract_rtp.py <pcap_file>")
+        sys.exit(1)
+
+    pcap_file = sys.argv[1]
+    if not os.path.exists(pcap_file):
+        print(f"❌ File not found: {pcap_file}")
+        sys.exit(1)
+
+    extract_rtp_streams(pcap_file)
+
