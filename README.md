@@ -26,16 +26,24 @@ VoIP-Spy is a VoIP monitoring tool using TShark to capture and analyze SIP and R
 VoIP-Spy/
 │── src/                     # Source code
 │   ├── capture/             # Packet capturing scripts
+│   │   └── capture.py       # Main capture script
 │   ├── analysis/            # Packet analysis scripts
+│   │   └── analyze.py       # Main analysis script
 │   ├── logging/             # Call logging scripts
+│   │   └── log.py           # Main logging script
 │   ├── security/            # Security auditing scripts
+│   │   └── audit.py         # Main auditing script
 │   ├── utils/               # Utility functions
-│   ├── main.py              # Main entry point
+│   │   └── utils.py         # Helper functions
+│   └── main.py              # Main entry point
 │
 │── web/                     # Web interface
 │   ├── static/              # Static assets (CSS, JS)
+│   │   ├── css/             # CSS files
+│   │   ├── js/              # JavaScript files
 │   ├── templates/           # HTML templates
-│   ├── app.js               # Web server entry point
+│   │   └── index.html       # Main HTML template
+│   └── app.js               # Web server entry point
 │
 │── README.md                # Project documentation
 │── requirements.txt         # Python dependencies
